@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L'histoire de votre maison</title>
+<meta name="description" content="Votre adresse sur la carte de Cassini (1760), la carte d'état-major (1850), la photo aérienne de 1950 et aujourd'hui. Livret PDF personnalisé, reçu par email.">
+<style>
+  :root {
+    --fond: #f7f2e9;
+    --carte: #fffdf8;
+    --encre: #2b2622;
+    --doux: #6b6158;
+    --accent: #9c2f22;
+    --accent-texte: #fffaf3;
+    --filet: #e2d8c9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fond: #1c1916; --carte: #26221e; --encre: #f1ebe2; --doux: #b5aa9d;
+      --accent: #d0644f; --accent-texte: #1c1916; --filet: #3a342e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fond); color: var(--encre);
+    font-family: Georgia, "Times New Roman", serif; line-height: 1.6;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 0 16px 64px; }
+  header { padding: 56px 0 32px; }
+  .surtitre { font-family: system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; font-size: 12px; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-size: clamp(32px, 6vw, 54px); line-height: 1.08; font-weight: normal; margin: 0 0 16px; }
+  .chapo { font-size: 20px; color: var(--doux); max-width: 640px; margin: 0 0 28px; }
+  .cta {
+    display: inline-block; background: var(--accent); color: var(--accent-texte);
+    font-family: system-ui, sans-serif; font-weight: 600; font-size: 17px;
+    padding: 14px 26px; border-radius: 6px; text-decoration: none;
+  }
+  .cta:hover { filter: brightness(1.08); }
+  .prix { font-family: system-ui, sans-serif; color: var(--doux); font-size: 14px; margin-left: 12px; }
+  @media (max-width: 480px) { .prix { display: block; margin: 10px 0 0; } }
+  figure { margin: 0; }
+  img { max-width: 100%; height: auto; display: block; border-radius: 4px; }
+  .visuel { margin: 8px 0 48px; }
+  figcaption { font-family: system-ui, sans-serif; font-size: 13px; color: var(--doux); margin-top: 8px; }
+  h2 { font-weight: normal; font-size: 28px; margin: 48px 0 16px; }
+  .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .etape { background: var(--carte); border: 1px solid var(--filet); border-radius: 6px; padding: 18px; }
+  .etape strong { display: block; font-size: 18px; font-weight: normal; margin-bottom: 4px; }
+  .etape span { color: var(--doux); font-size: 15px; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+  @media (max-width: 720px) { .duo { grid-template-columns: 1fr; } }
+  ul.coches { padding-left: 1.1em; }
+  ul.coches li { margin-bottom: 6px; }
+  details { background: var(--carte); border: 1px solid var(--filet); border-radius: 6px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-size: 18px; }
+  details p { color: var(--doux); margin: 10px 0 0; }
+  footer { font-family: system-ui, sans-serif; font-size: 13px; color: var(--doux); border-top: 1px solid var(--filet); margin-top: 56px; padding-top: 20px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="surtitre">Un cadeau qui raconte une maison</p>
+    <h1>Votre maison,<br>il y a 250 ans.</h1>
+    <p class="chapo">Entrez une adresse : recevez en quelques minutes un livret PDF qui montre ce lieu sur la carte de Cassini (vers 1760), la carte d'état-major (vers 1850), la première photo aérienne (1950) et aujourd'hui, avec l'histoire de la commune.</p>
+    <a class="cta" id="commander" href="#">Créer mon livret</a><span class="prix">29&nbsp;€ · PDF reçu par email</span>
+  </header>
+
+  <figure class="visuel">
+    <img src="avant-apres.jpg" width="1200" height="682" alt="Le même quartier d'Amiens photographié du ciel vers 1950 et aujourd'hui">
+    <figcaption>Exemple réel : le parvis de la cathédrale d'Amiens, entre 1950-1965 et aujourd'hui. L'image à partager n'affiche que la commune, jamais l'adresse.</figcaption>
+  </figure>
+
+  <h2>Comment ça marche</h2>
+  <div class="grille">
+    <div class="etape"><strong>1. L'adresse</strong><span>Vous la saisissez au moment du paiement sécurisé.</span></div>
+    <div class="etape"><strong>2. Les archives</strong><span>Cartes et photos de l'IGN, cadastre, base nationale des bâtiments, Wikipédia.</span></div>
+    <div class="etape"><strong>3. Le livret</strong><span>Une dizaine de pages mises en page, reçues par email en quelques minutes.</span></div>
+  </div>
+
+  <div class="duo">
+    <figure>
+      <img src="page-cassini.jpg" width="497" height="703" alt="Page du livret montrant Amiens sur la carte de Cassini">
+      <figcaption>Une page du livret : Amiens sur la carte de Cassini.</figcaption>
+    </figure>
+    <div>
+      <h2>Dans le livret</h2>
+      <ul class="coches">
+        <li>Votre adresse sur la carte de Cassini (XVIII<sup>e</sup> siècle)</li>
+        <li>La carte d'état-major (1820-1866)</li>
+        <li>Les photographies aériennes de 1950 à aujourd'hui, à la même échelle</li>
+        <li>L'âge et les matériaux estimés du bâtiment, sa parcelle cadastrale</li>
+        <li>L'origine du nom et l'histoire de la commune</li>
+        <li>Les lieux remarquables autour de chez vous</li>
+        <li>L'image « hier / aujourd'hui » prête à partager</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Questions fréquentes</h2>
+  <details><summary>Ma maison sera-t-elle visible sur la carte de 1760 ?</summary>
+    <p>La carte de Cassini montre les villages, routes, églises et moulins, pas les maisons une à une. Votre maison apparaît en général sur la carte d'état-major si elle date d'avant 1866, et sur la photographie de 1950 si elle date d'avant.</p></details>
+  <details><summary>D'où viennent les informations ?</summary>
+    <p>Uniquement de données publiques ouvertes : IGN (Licence Ouverte), cadastre (DGFiP), Base de données nationale des bâtiments (CSTB) et Wikipédia (CC BY-SA). L'année de construction est une estimation issue des fichiers fonciers.</p></details>
+  <details><summary>Toute la France est-elle couverte ?</summary>
+    <p>La France métropolitaine, oui. Certaines campagnes de photographies anciennes ne couvrent pas tout le territoire : le livret ne montre que les époques disponibles pour votre adresse.</p></details>
+  <details><summary>Et si je ne suis pas satisfait ?</summary>
+    <p>Écrivez-nous : nous refaisons le livret ou vous remboursons. En validant la commande, vous acceptez la livraison immédiate du contenu numérique, ce qui met fin au droit de rétractation (article L221-28 du Code de la consommation).</p></details>
+  <details><summary>Je suis agence immobilière ou notaire</summary>
+    <p>Offrez le livret à vos acquéreurs ou utilisez-le pour valoriser vos annonces de maisons anciennes. Contactez-nous pour un tarif en volume.</p></details>
+
+  <footer>
+    <p>Sources : IGN – Géoplateforme (cartes de Cassini et d'état-major, BD ORTHO® et BD ORTHO® Historique, Licence Ouverte) ; Archives nationales ; DGFiP ; CSTB ; contributeurs de Wikipédia (CC BY-SA 4.0).</p>
+    <p>Mentions légales : [NOM / RAISON SOCIALE] · [SIREN] · [ADRESSE] · [EMAIL DE CONTACT]. Hébergement : GitHub Pages. Paiement : Stripe.</p>
+  </footer>
+</main>
+<script>
+  // Remplacer par votre Payment Link Stripe (avec un champ personnalisé texte nommé « adresse »).
+  const LIEN_PAIEMENT = "https://buy.stripe.com/A_REMPLACER";
+  document.getElementById("commander").href = LIEN_PAIEMENT;
+</script>
+</body>
+</html>

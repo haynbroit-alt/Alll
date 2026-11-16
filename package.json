@@ -1,0 +1,12 @@
+{
+  "name": "maison-histoire",
+  "private": true,
+  "type": "module",
+  "description": "Outils Node : export PDF du livret (Playwright) et relais Stripe → GitHub.",
+  "scripts": {
+    "test:relais": "node relais/test-signature.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
+  }
+}

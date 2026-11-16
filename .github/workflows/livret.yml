@@ -1,0 +1,87 @@
+name: Livret (commande)
+
+# Déclenché :
+#  - automatiquement par le relais Stripe (relais/worker.js) via repository_dispatch ;
+#  - à la main depuis l'onglet Actions (workflow_dispatch), pour un test ou un geste commercial.
+on:
+  repository_dispatch:
+    types: [commande-livret]
+  workflow_dispatch:
+    inputs:
+      adresse:
+        description: "Adresse postale française"
+        required: true
+      email:
+        description: "Email du destinataire (vide = livret en artefact seulement)"
+        required: false
+      commande:
+        description: "Référence de commande (facultatif)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: livret-${{ github.event.client_payload.commande || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  livret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Jamais d'interpolation ${{ }} dans les scripts : tout passe par des variables d'environnement.
+      ADRESSE: ${{ github.event.client_payload.adresse || inputs.adresse }}
+      EMAIL: ${{ github.event.client_payload.email || inputs.email }}
+      COMMANDE: ${{ github.event.client_payload.commande || inputs.commande }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EXPEDITEUR: ${{ vars.EXPEDITEUR }}
+      MARQUE: ${{ vars.MARQUE || 'L''histoire de votre maison' }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Masquer les données client dans les journaux
+        run: |
+          [ -n "$ADRESSE" ] && echo "::add-mask::$ADRESSE"
+          [ -n "$EMAIL" ] && echo "::add-mask::$EMAIL"
+          if [ -z "$ADRESSE" ] || [ "${#ADRESSE}" -gt 200 ]; then
+            echo "Adresse absente ou trop longue" >&2; exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Dépendances
+        run: |
+          pip install -r requirements.txt
+          if [ -n "$ANTHROPIC_API_KEY" ]; then pip install "anthropic>=1.0"; fi
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Générer le livret
+        run: |
+          OPTIONS="--pdf"
+          if [ -n "$ANTHROPIC_API_KEY" ]; then OPTIONS="$OPTIONS --ia"; fi
+          python -m maison "$ADRESSE" --sortie sortie --marque "$MARQUE" $OPTIONS > fichiers.txt
+          echo "DOSSIER=$(dirname "$(grep '^html:' fichiers.txt | cut -d' ' -f2)")" >> "$GITHUB_ENV"
+
+      - name: Envoyer par email
+        id: envoi
+        if: env.EMAIL != ''
+        continue-on-error: true
+        run: python -m maison.envoi --dossier "$DOSSIER" --email "$EMAIL"
+
+      - name: Conserver le livret (si non envoyé)
+        if: env.EMAIL == '' || steps.envoi.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: livret-${{ github.run_id }}
+          path: ${{ env.DOSSIER }}
+          retention-days: 1
