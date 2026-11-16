@@ -1,0 +1,4 @@
+Pillow>=10.1
+Jinja2>=3.1
+# Optionnel, pour l'option --ia (réécriture du récit par Claude) :
+# anthropic>=1.0
