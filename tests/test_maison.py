@@ -90,6 +90,12 @@ class TestGeometrie(unittest.TestCase):
         multi = {"type": "MultiPolygon", "coordinates": [self.carre["coordinates"]]}
         self.assertEqual(sources.distance_point_geometrie(0.0005, 0.0005, multi), 0.0)
 
+    def test_coordonnees_3d_bdtopo(self):
+        # Régression (commande réelle, place du Capitole à Toulouse) : la BD TOPO® renvoie (x, y, z).
+        carre_3d = {"type": "Polygon", "coordinates": [[[x, y, 146.2] for x, y in self.carre["coordinates"][0]]]}
+        d = sources.distance_point_geometrie(0.0015, 0.0005, carre_3d)
+        self.assertAlmostEqual(d, 55.66, delta=1)
+
 
 class TestGeocodage(unittest.TestCase):
     reponse = {
@@ -186,6 +192,17 @@ class TestRecit(unittest.TestCase):
         lignes = recit.sources_et_licences(faits_exemple(), {"cassini", "aujourdhui"})
         self.assertTrue(any("Cassini" in l for l in lignes))
         self.assertTrue(any("CC BY-SA" in l for l in lignes))
+
+    def test_attribution_wikipedia_et_bdnb(self):
+        faits = faits_exemple()
+        faits["wikipedia_commune"] = {"titre": "Amiens", "url": "https://fr.wikipedia.org/wiki/Amiens"}
+        faits["alentours"] = [{"titre": "Cathédrale", "url": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale"}]
+        faits["batiment"] = {"source": "BDNB (CSTB)"}
+        texte = " ".join(recit.sources_et_licences(faits, {"cassini"}))
+        self.assertIn("https://creativecommons.org/licenses/by-sa/4.0/deed.fr", texte)
+        self.assertIn("https://fr.wikipedia.org/wiki/Amiens", texte)
+        self.assertIn("https://fr.wikipedia.org/wiki/Cath%C3%A9drale", texte)
+        self.assertIn("Base de Données Nationale des Bâtiments (BDNB), CSTB — Licence Ouverte Etalab 2.0", texte)
 
 
 class TestRendu(unittest.TestCase):

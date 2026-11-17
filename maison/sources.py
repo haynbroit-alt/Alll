@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import sys
 import urllib.parse
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -133,7 +134,8 @@ def distance_point_geometrie(lon: float, lat: float, geometrie: dict[str, Any]) 
         exterieur = polygone[0]
         if _point_dans_anneau(lon, lat, exterieur):
             return 0.0
-        for (ax, ay), (bx, by) in zip(exterieur, exterieur[1:]):
+        for a, b in zip(exterieur, exterieur[1:]):
+            (ax, ay), (bx, by) = a[:2], b[:2]  # la BD TOPO® renvoie des coordonnées 3D (x, y, z)
             d = _distance_point_segment(
                 lon * mx, lat * my, ax * mx, ay * my, bx * mx, by * my
             )
@@ -443,6 +445,17 @@ def wikipedia_alentours(lat: float, lon: float, rayon_m: int = 1000, limite: int
 # ---------------------------------------------------------------- orchestration
 
 
+def _tolerant(fonction, *args, **kwargs):
+    """Une source facultative ne doit jamais faire échouer une commande payée : elle est simplement omise."""
+
+    try:
+        return fonction(*args, **kwargs)
+    except Exception as e:  # noqa: BLE001 — journal sans donnée personnelle, puis repli
+        nom = getattr(fonction, "__name__", "source")
+        print(f"Source ignorée ({nom}) : {type(e).__name__}", file=sys.stderr)
+        return None
+
+
 def collecter(texte_adresse: str) -> Faits:
     adresse = geocoder(texte_adresse)
     faits = Faits(adresse=adresse)
@@ -451,17 +464,17 @@ def collecter(texte_adresse: str) -> Faits:
             "Adresse localisée sans numéro précis : la position est approximative."
         )
 
-    faits.parcelle = parcelle(adresse.lon, adresse.lat)
-    faits.batiment = batiment_bdnb(adresse.cle_ban) or batiment_bdtopo(adresse.lon, adresse.lat)
-    faits.commune = commune(adresse.code_insee) if adresse.code_insee else None
+    faits.parcelle = _tolerant(parcelle, adresse.lon, adresse.lat)
+    faits.batiment = _tolerant(batiment_bdnb, adresse.cle_ban) or _tolerant(batiment_bdtopo, adresse.lon, adresse.lat)
+    faits.commune = _tolerant(commune, adresse.code_insee) if adresse.code_insee else None
 
     nom = (faits.commune or {}).get("nom") or adresse.commune
     if nom:
-        faits.wikipedia_commune = wikipedia_commune(
-            nom, (faits.commune or {}).get("departement"), adresse.lat, adresse.lon
+        faits.wikipedia_commune = _tolerant(
+            wikipedia_commune, nom, (faits.commune or {}).get("departement"), adresse.lat, adresse.lon
         )
     exclure = {nom} | ({faits.wikipedia_commune["titre"]} if faits.wikipedia_commune else set())
-    faits.alentours = wikipedia_alentours(adresse.lat, adresse.lon, exclure=exclure)
+    faits.alentours = _tolerant(wikipedia_alentours, adresse.lat, adresse.lon, exclure=exclure) or []
 
     for cle, libelle in (
         ("parcelle", "parcelle cadastrale"),
