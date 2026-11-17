@@ -90,6 +90,12 @@ class TestGeometrie(unittest.TestCase):
         multi = {"type": "MultiPolygon", "coordinates": [self.carre["coordinates"]]}
         self.assertEqual(sources.distance_point_geometrie(0.0005, 0.0005, multi), 0.0)
 
+    def test_coordonnees_3d_bdtopo(self):
+        # Régression (commande réelle, place du Capitole à Toulouse) : la BD TOPO® renvoie (x, y, z).
+        carre_3d = {"type": "Polygon", "coordinates": [[[x, y, 146.2] for x, y in self.carre["coordinates"][0]]]}
+        d = sources.distance_point_geometrie(0.0015, 0.0005, carre_3d)
+        self.assertAlmostEqual(d, 55.66, delta=1)
+
 
 class TestGeocodage(unittest.TestCase):
     reponse = {
