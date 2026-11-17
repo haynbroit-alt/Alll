@@ -73,6 +73,15 @@ jobs:
           python -m maison "$ADRESSE" --sortie sortie --marque "$MARQUE" $OPTIONS > fichiers.txt
           echo "DOSSIER=$(dirname "$(grep '^html:' fichiers.txt | cut -d' ' -f2)")" >> "$GITHUB_ENV"
 
+      - name: Contrôle qualité (aucune donnée personnelle)
+        id: qualite
+        run: |
+          set +e
+          python -m maison.qualite "$DOSSIER/faits.json" | tee qualite.json
+          code=${PIPESTATUS[0]}
+          echo "verdict=$([ "$code" = 0 ] && echo envoyable || echo a_verifier)" >> "$GITHUB_OUTPUT"
+          { echo "### Contrôle qualité"; echo '```json'; cat qualite.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Envoyer par email
         id: envoi
         if: env.EMAIL != ''
