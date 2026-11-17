@@ -291,12 +291,21 @@ def sources_et_licences(faits: dict[str, Any], images_disponibles: set[str]) -> 
     if faits.get("parcelle"):
         lignes.append("Cadastre : DGFiP via API Carto IGN — Licence Ouverte Etalab")
     bat = faits.get("batiment") or {}
-    if bat.get("source"):
-        lignes.append(f"Bâtiment : {bat['source']} — données ouvertes, valeurs estimées")
+    if bat.get("source", "").startswith("BDNB"):
+        lignes.append(
+            "Bâtiment : Base de Données Nationale des Bâtiments (BDNB), CSTB — Licence Ouverte Etalab 2.0 ; "
+            "valeurs estimées"
+        )
+    elif bat.get("source"):
+        lignes.append(f"Bâtiment : {bat['source']} — Licence Ouverte Etalab ; valeurs estimées")
     if faits.get("commune"):
         lignes.append("Commune : API Découpage administratif (geo.api.gouv.fr) — Licence Ouverte Etalab")
     if faits.get("wikipedia_commune") or faits.get("alentours"):
+        # CC BY-SA 4.0 : citer les articles et les auteurs, la licence (lien), et signaler les modifications.
+        urls = [a["url"] for a in [faits.get("wikipedia_commune") or {}, *(faits.get("alentours") or [])] if a.get("url")]
         lignes.append(
-            "Textes et lieux : contributeurs de Wikipédia — licence CC BY-SA 4.0"
+            "Textes : © contributeurs de Wikipédia, licence CC BY-SA 4.0 "
+            "(https://creativecommons.org/licenses/by-sa/4.0/deed.fr) ; extraits éventuellement abrégés."
+            + (" Articles : " + " ; ".join(urls) if urls else "")
         )
     return lignes

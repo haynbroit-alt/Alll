@@ -35,10 +35,19 @@ jobs:
       ADRESSE: ${{ github.event.client_payload.adresse || inputs.adresse }}
       EMAIL: ${{ github.event.client_payload.email || inputs.email }}
       COMMANDE: ${{ github.event.client_payload.commande || inputs.commande }}
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-      EXPEDITEUR: ${{ vars.EXPEDITEUR }}
       MARQUE: ${{ vars.MARQUE || 'L''histoire de votre maison' }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Canal d'envoi : Resend (domaine vérifié) ou une boîte existante en SMTP (0 €, sans domaine).
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EXPEDITEUR: ${{ vars.EXPEDITEUR }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      # Confirmation légale de commande (art. L221-13 C. conso.).
+      PRIX: ${{ vars.PRIX || '29 €' }}
+      URL_CGV: ${{ vars.URL_CGV }}
+      CONTACT: ${{ vars.CONTACT }}
     steps:
       - name: Masquer les données client dans les journaux
         run: |
@@ -67,11 +76,23 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Générer le livret
+        id: generation
         run: |
           OPTIONS="--pdf"
           if [ -n "$ANTHROPIC_API_KEY" ]; then OPTIONS="$OPTIONS --ia"; fi
-          python -m maison "$ADRESSE" --sortie sortie --marque "$MARQUE" $OPTIONS > fichiers.txt
-          echo "DOSSIER=$(dirname "$(grep '^html:' fichiers.txt | cut -d' ' -f2)")" >> "$GITHUB_ENV"
+          python -m maison "$ADRESSE" --sortie brut --marque "$MARQUE" $OPTIONS > fichiers.txt
+          # Dossier neutre : le nom dérivé de l'adresse n'apparaît jamais dans les journaux.
+          mv "$(dirname "$(grep '^html:' fichiers.txt | cut -d' ' -f2)")" livret
+          rm -f fichiers.txt
+
+      - name: Contrôle qualité (aucune donnée personnelle)
+        id: qualite
+        run: |
+          set +e
+          python -m maison.qualite livret/faits.json --saisie "$ADRESSE" | tee qualite.json
+          code=${PIPESTATUS[0]}
+          echo "verdict=$([ "$code" = 0 ] && echo envoyable || echo a_verifier)" >> "$GITHUB_OUTPUT"
+          { echo "### Contrôle qualité"; echo '```json'; cat qualite.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Contrôle qualité (aucune donnée personnelle)
         id: qualite
@@ -84,14 +105,33 @@ jobs:
 
       - name: Envoyer par email
         id: envoi
-        if: env.EMAIL != ''
+        if: env.EMAIL != '' && steps.qualite.outputs.verdict == 'envoyable'
         continue-on-error: true
-        run: python -m maison.envoi --dossier "$DOSSIER" --email "$EMAIL"
+        run: python -m maison.envoi --dossier livret --email "$EMAIL" --commande "$COMMANDE"
+
+      - name: Prévenir le client (livraison différée)
+        id: prevenir
+        if: always() && env.EMAIL != '' && steps.envoi.outcome != 'success'
+        continue-on-error: true
+        env:
+          MESSAGE: ${{ steps.qualite.outputs.verdict == 'a_verifier' && 'verification' || 'prise-en-charge' }}
+        run: python -m maison.envoi --email "$EMAIL" --message "$MESSAGE" --commande "$COMMANDE"
 
       - name: Conserver le livret (si non envoyé)
-        if: env.EMAIL == '' || steps.envoi.outcome != 'success'
+        if: always() && steps.envoi.outcome != 'success' && hashFiles('livret/faits.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: livret-${{ github.run_id }}
-          path: ${{ env.DOSSIER }}
-          retention-days: 1
+          path: livret
+          retention-days: 3
+
+      - name: Alerter le responsable (commande non livrée automatiquement)
+        if: always() && env.EMAIL != '' && steps.envoi.outcome != 'success'
+        env:
+          VERDICT: ${{ steps.qualite.outputs.verdict || 'échec de génération' }}
+          PREVENIR: ${{ steps.prevenir.outcome }}
+        run: |
+          if [ "$PREVENIR" = "success" ]; then PREVENU="Le client a été prévenu (livraison sous 24 h)."
+          else PREVENU="ATTENTION, le client n'a PAS pu être prévenu (canal d'envoi en panne) : lui écrire directement."; fi
+          echo "::error title=Commande à traiter à la main::Commande ${COMMANDE:-sans référence} non livrée automatiquement (verdict : $VERDICT). $PREVENU Vérifier le livret en artefact (3 jours), corriger l'adresse si besoin, puis relancer « Livret (commande) » avec l'adresse et l'email."
+          exit 1

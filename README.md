@@ -31,8 +31,13 @@ Stripe Payment Link (champ « adresse »)
    └─► webhook ─► relais/worker.js (Cloudflare Worker, gratuit)
                      └─► GitHub repository_dispatch ─► .github/workflows/livret.yml
                                                          ├─ python -m maison … --pdf
-                                                         └─ python -m maison.envoi (Resend, gratuit ≤ 3 000/mois)
+                                                         ├─ python -m maison.qualite (sans donnée personnelle)
+                                                         └─ python -m maison.envoi (SMTP d'une boîte existante, ou Resend)
 ```
+
+Une commande douteuse (adresse sans code postal ou localisée ailleurs, outre-mer, livret trop pauvre) ou une
+panne n'est jamais silencieuse : le client est prévenu (livraison sous 24 h) et le responsable reçoit une
+alerte GitHub. Pages légales : `site/cgv.html`, `site/confidentialite.html`, `site/mentions-legales.html`.
 
 ## Données et licences (vérifiées dans les métadonnées officielles)
 
