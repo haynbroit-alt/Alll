@@ -101,6 +101,7 @@ jobs:
         run: python -m maison.envoi --dossier livret --email "$EMAIL" --commande "$COMMANDE"
 
       - name: Prévenir le client (livraison différée)
+        id: prevenir
         if: always() && env.EMAIL != '' && steps.envoi.outcome != 'success'
         continue-on-error: true
         env:
@@ -119,6 +120,9 @@ jobs:
         if: always() && env.EMAIL != '' && steps.envoi.outcome != 'success'
         env:
           VERDICT: ${{ steps.qualite.outputs.verdict || 'échec de génération' }}
+          PREVENIR: ${{ steps.prevenir.outcome }}
         run: |
-          echo "::error title=Commande à traiter à la main::Commande ${COMMANDE:-sans référence} non livrée automatiquement (verdict : $VERDICT). Le client a été prévenu (livraison sous 24 h). Vérifier le livret en artefact, corriger l'adresse si besoin, puis relancer « Livret (commande) » avec l'adresse et l'email."
+          if [ "$PREVENIR" = "success" ]; then PREVENU="Le client a été prévenu (livraison sous 24 h)."
+          else PREVENU="ATTENTION, le client n'a PAS pu être prévenu (canal d'envoi en panne) : lui écrire directement."; fi
+          echo "::error title=Commande à traiter à la main::Commande ${COMMANDE:-sans référence} non livrée automatiquement (verdict : $VERDICT). $PREVENU Vérifier le livret en artefact (3 jours), corriger l'adresse si besoin, puis relancer « Livret (commande) » avec l'adresse et l'email."
           exit 1
