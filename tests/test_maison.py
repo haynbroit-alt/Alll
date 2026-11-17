@@ -193,6 +193,17 @@ class TestRecit(unittest.TestCase):
         self.assertTrue(any("Cassini" in l for l in lignes))
         self.assertTrue(any("CC BY-SA" in l for l in lignes))
 
+    def test_attribution_wikipedia_et_bdnb(self):
+        faits = faits_exemple()
+        faits["wikipedia_commune"] = {"titre": "Amiens", "url": "https://fr.wikipedia.org/wiki/Amiens"}
+        faits["alentours"] = [{"titre": "Cathédrale", "url": "https://fr.wikipedia.org/wiki/Cath%C3%A9drale"}]
+        faits["batiment"] = {"source": "BDNB (CSTB)"}
+        texte = " ".join(recit.sources_et_licences(faits, {"cassini"}))
+        self.assertIn("https://creativecommons.org/licenses/by-sa/4.0/deed.fr", texte)
+        self.assertIn("https://fr.wikipedia.org/wiki/Amiens", texte)
+        self.assertIn("https://fr.wikipedia.org/wiki/Cath%C3%A9drale", texte)
+        self.assertIn("Base de Données Nationale des Bâtiments (BDNB), CSTB — Licence Ouverte Etalab 2.0", texte)
+
 
 class TestRendu(unittest.TestCase):
     def images(self):
