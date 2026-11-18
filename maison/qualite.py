@@ -6,13 +6,24 @@ Sert à deux choses :
   envoyé automatiquement. Il part en vérification humaine : mieux vaut un client prévenu qu'un livret de
   la mauvaise maison, qui finit en remboursement ou en litige.
 
-Usage : python -m maison.qualite sortie/<slug>/faits.json   (code de sortie 0 = envoyable, 4 = à vérifier)
+Usage : python -m maison.qualite livret/faits.json [--saisie "adresse tapée par le client"]
+        (code de sortie 0 = envoyable, 4 = à vérifier)
+
+Règles, établies sur des commandes de test réelles (novembre 2026) :
+- outre-mer : les cartes anciennes ne couvrent pas ces territoires ;
+- code postal absent de la saisie, ou différent de celui trouvé : « 12 rue Victor Hugo » sans ville a été
+  localisé à Bordeaux avec un score élevé — un livret de la mauvaise maison ;
+- localisation au niveau de la commune seulement, ou correspondance faible ;
+- moins de 3 époques disponibles.
+Une adresse de rue ou de lieu-dit (sans numéro) reste envoyable : les cartes sont justes à cette échelle et le
+récit n'affirme rien sur le bâtiment sans numéro exact.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
-import sys
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +32,10 @@ SCORE_MIN = 0.6
 OUTRE_MER = ("97", "98")
 
 
-def evaluer(donnees: dict[str, Any]) -> dict[str, Any]:
+CODE_POSTAL = re.compile(r"(?<!\d)(\d{5})(?!\d)")
+
+
+def evaluer(donnees: dict[str, Any], saisie: str | None = None) -> dict[str, Any]:
     faits = donnees.get("faits", {})
     adresse = faits.get("adresse") or {}
     epoques = list(donnees.get("epoques_disponibles") or [])
@@ -42,8 +56,15 @@ def evaluer(donnees: dict[str, Any]) -> dict[str, Any]:
     raisons: list[str] = []
     if code_postal.startswith(OUTRE_MER):
         raisons.append("hors France métropolitaine : cartes anciennes non couvertes")
-    if rapport["precision"] != "housenumber":
-        raisons.append(f"adresse localisée au niveau « {rapport['precision']} », pas au numéro : maison incertaine")
+    if saisie is not None:
+        tapes = CODE_POSTAL.findall(saisie)
+        rapport["code_postal_saisi"] = bool(tapes)
+        if not tapes:
+            raisons.append("aucun code postal dans l'adresse saisie : commune incertaine")
+        elif code_postal not in tapes:
+            raisons.append("le code postal saisi ne correspond pas à l'adresse trouvée")
+    if rapport["precision"] not in ("housenumber", "street", "locality"):
+        raisons.append(f"adresse localisée seulement au niveau « {rapport['precision']} »")
     if rapport["score_geocodage"] < SCORE_MIN:
         raisons.append(f"correspondance d'adresse faible ({rapport['score_geocodage']})")
     if len(epoques) < EPOQUES_MIN:
@@ -54,11 +75,11 @@ def evaluer(donnees: dict[str, Any]) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = sys.argv[1:] if argv is None else argv
-    if len(args) != 1:
-        print("Usage : python -m maison.qualite <faits.json>", file=sys.stderr)
-        return 1
-    rapport = evaluer(json.loads(Path(args[0]).read_text(encoding="utf-8")))
+    parser = argparse.ArgumentParser(prog="python -m maison.qualite")
+    parser.add_argument("faits", type=Path)
+    parser.add_argument("--saisie", help="Adresse telle que tapée par le client (jamais affichée)")
+    args = parser.parse_args(argv)
+    rapport = evaluer(json.loads(args.faits.read_text(encoding="utf-8")), args.saisie)
     print(json.dumps(rapport, ensure_ascii=False))
     return 0 if rapport["verdict"] == "envoyable" else 4
 
