@@ -94,16 +94,7 @@ jobs:
           echo "verdict=$([ "$code" = 0 ] && echo envoyable || echo a_verifier)" >> "$GITHUB_OUTPUT"
           { echo "### Contrôle qualité"; echo '```json'; cat qualite.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Contrôle qualité (aucune donnée personnelle)
-        id: qualite
-        run: |
-          set +e
-          python -m maison.qualite "$DOSSIER/faits.json" | tee qualite.json
-          code=${PIPESTATUS[0]}
-          echo "verdict=$([ "$code" = 0 ] && echo envoyable || echo a_verifier)" >> "$GITHUB_OUTPUT"
-          { echo "### Contrôle qualité"; echo '```json'; cat qualite.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Envoyer par email
+      - name: Envoyer le livret
         id: envoi
         if: env.EMAIL != '' && steps.qualite.outputs.verdict == 'envoyable'
         continue-on-error: true
